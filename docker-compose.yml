@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-local}/mcp-control-hub:${IMAGE_TAG:-latest}
+    container_name: mcp-control-hub
+    restart: unless-stopped
+    ports:
+      - "18080:8080"
+    environment:
+      # Bootstrap API Key (optional, will auto-generate if not set)
+      # Set this to a fixed key for production deployments
+      - BOOTSTRAP_API_KEY=${BOOTSTRAP_API_KEY:-}
+      # Server configuration
+      - GATEWAY_SERVER_HOST=0.0.0.0
+      - GATEWAY_SERVER_PORT=8080
+      - GATEWAY_SERVER_MODE=release
+      # Database configuration
+      - GATEWAY_DATABASE_DRIVER=sqlite
+      - GATEWAY_DATABASE_DSN=/app/data/gateway.db
+      # Logging configuration
+      - GATEWAY_LOGGING_LEVEL=info
+      - GATEWAY_LOGGING_FORMAT=json
+    volumes:
+      - app-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  app-data:

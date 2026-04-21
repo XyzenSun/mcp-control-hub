@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Gateway</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">MCP Gateway</h1>
+                <div class="header-right">
+                    <button class="btn btn-small" id="langToggle">EN</button>
+                    <button class="btn btn-small" id="logoutBtn" data-zh="退出" data-en="Logout">退出</button>
+                    <div class="header-status">
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span class="status-text" id="statusText" data-zh="连接中..." data-en="Connecting...">连接中...</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav">
+            <button class="nav-item active" data-view="servers" data-zh="服务器" data-en="Servers">服务器</button>
+            <button class="nav-item" data-view="tools" data-zh="工具" data-en="Tools">工具</button>
+            <button class="nav-item" data-view="namespaces" data-zh="命名空间" data-en="Namespaces">命名空间</button>
+            <button class="nav-item" data-view="apikeys" data-zh="API 密钥" data-en="API Keys">API 密钥</button>
+            <button class="nav-item" data-view="config" data-zh="系统配置" data-en="Config">系统配置</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Servers View -->
+            <section class="view active" id="serversView">
+                <div class="view-header">
+                    <h2 class="view-title" data-zh="上游服务器" data-en="Upstream Servers">上游服务器</h2>
+                    <button class="btn btn-primary" id="addServerBtn" data-zh="添加服务器" data-en="Add Server">添加服务器</button>
+                </div>
+                <div class="card-grid" id="serversList"></div>
+            </section>
+
+            <!-- Tools View -->
+            <section class="view" id="toolsView">
+                <div class="view-header">
+                    <h2 class="view-title" data-zh="工具" data-en="Tools">工具</h2>
+                    <button class="btn btn-secondary" id="refreshToolsBtn" data-zh="刷新全部" data-en="Refresh All">刷新全部</button>
+                </div>
+                <div class="filters">
+                    <select class="filter-select" id="serverFilter">
+                        <option value="" data-zh="所有服务器" data-en="All Servers">所有服务器</option>
+                    </select>
+                    <select class="filter-select" id="enabledFilter">
+                        <option value="" data-zh="所有状态" data-en="All Status">所有状态</option>
+                        <option value="true" data-zh="已启用" data-en="Enabled">已启用</option>
+                        <option value="false" data-zh="已禁用" data-en="Disabled">已禁用</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table class="table" id="toolsTable">
+                        <thead>
+                            <tr>
+                                <th data-zh="名称" data-en="Name">名称</th>
+                                <th data-zh="服务器" data-en="Server">服务器</th>
+                                <th data-zh="描述" data-en="Description">描述</th>
+                                <th data-zh="状态" data-en="Status">状态</th>
+                                <th data-zh="操作" data-en="Actions">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="toolsTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Namespaces View -->
+            <section class="view" id="namespacesView">
+                <div class="view-header">
+                    <h2 class="view-title" data-zh="命名空间" data-en="Namespaces">命名空间</h2>
+                    <button class="btn btn-primary" id="addNamespaceBtn" data-zh="添加命名空间" data-en="Add Namespace">添加命名空间</button>
+                </div>
+                <div class="card-grid" id="namespacesList"></div>
+            </section>
+
+            <!-- API Keys View -->
+            <section class="view" id="apikeysView">
+                <div class="view-header">
+                    <h2 class="view-title" data-zh="API 密钥" data-en="API Keys">API 密钥</h2>
+                    <button class="btn btn-primary" id="generateKeyBtn" data-zh="生成密钥" data-en="Generate Key">生成密钥</button>
+                </div>
+                <div class="table-container">
+                    <table class="table" id="apikeysTable">
+                        <thead>
+                            <tr>
+                                <th data-zh="名称" data-en="Name">名称</th>
+                                <th data-zh="创建时间" data-en="Created">创建时间</th>
+                                <th data-zh="最后使用" data-en="Last Used">最后使用</th>
+                                <th data-zh="操作" data-en="Actions">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apikeysTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Config View -->
+            <section class="view" id="configView">
+                <div class="view-header">
+                    <h2 class="view-title" data-zh="MCP 超时配置" data-en="MCP Timeout Config">MCP 超时配置</h2>
+                    <button class="btn btn-secondary" id="resetConfigBtn" data-zh="重置默认" data-en="Reset Defaults">重置默认</button>
+                </div>
+                <div class="config-container" id="configContainer"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle"></h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

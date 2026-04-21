@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Gateway - Login</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-xl);
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 420px;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-2xl);
+            box-shadow: 0 4px 12px var(--color-shadow-hover);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .login-logo {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            letter-spacing: -0.02em;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .login-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .login-form {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .login-footer {
+            text-align: center;
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .login-lang-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: color var(--transition-base);
+        }
+
+        .login-lang-toggle:hover {
+            color: var(--color-text-primary);
+        }
+
+        .error-message {
+            padding: var(--spacing-md);
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-lg);
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1 class="login-logo">MCP Gateway</h1>
+                <p class="login-subtitle" data-zh="连接到您的网关" data-en="Connect to your gateway">连接到您的网关</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" data-zh="API 密钥" data-en="API Key">API 密钥</label>
+                    <input
+                        class="form-input"
+                        type="password"
+                        name="apiKey"
+                        id="apiKey"
+                        placeholder="sk_..."
+                        required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;" data-zh="登录" data-en="Login">登录</button>
+            </form>
+
+            <div class="login-footer">
+                <span class="login-lang-toggle" id="langToggle">
+                    <span data-zh="English" data-en="中文">English</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LoginPage {
+            constructor() {
+                this.lang = localStorage.getItem('mcp_lang') || 'zh';
+                this.init();
+            }
+
+            init() {
+                this.applyLanguage();
+                this.bindEvents();
+                this.checkExistingAuth();
+            }
+
+            bindEvents() {
+                document.getElementById('langToggle').addEventListener('click', () => this.toggleLanguage());
+                document.getElementById('loginForm').addEventListener('submit', (e) => this.handleLogin(e));
+            }
+
+            toggleLanguage() {
+                this.lang = this.lang === 'zh' ? 'en' : 'zh';
+                localStorage.setItem('mcp_lang', this.lang);
+                this.applyLanguage();
+            }
+
+            applyLanguage() {
+                document.querySelectorAll('[data-zh][data-en]').forEach(el => {
+                    el.textContent = this.lang === 'zh' ? el.dataset.zh : el.dataset.en;
+                });
+            }
+
+            async checkExistingAuth() {
+                const apiKey = localStorage.getItem('mcp_api_key');
+
+                if (apiKey) {
+                    // Try to verify the existing credentials
+                    try {
+                        const response = await fetch('/health');
+                        if (response.ok) {
+                            // Credentials exist and server is reachable, redirect
+                            window.location.href = '/';
+                        }
+                    } catch (error) {
+                        // Server not reachable, stay on login page
+                    }
+                }
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+
+                const form = new FormData(e.target);
+                const apiKey = form.get('apiKey').trim();
+
+                // Clear previous error
+                this.hideError();
+
+                // Show loading state
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = this.lang === 'zh' ? '连接中...' : 'Connecting...';
+                submitBtn.disabled = true;
+
+                try {
+                    // Test API key by trying to list servers
+                    const testResponse = await fetch('/api/v1/servers', {
+                        method: 'GET',
+                        headers: {
+                            'X-API-Key': apiKey,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!testResponse.ok) {
+                        if (testResponse.status === 401 || testResponse.status === 403) {
+                            throw new Error('Invalid API key');
+                        }
+                        throw new Error(`Authentication failed: ${testResponse.status}`);
+                    }
+
+                    // Save credentials
+                    localStorage.setItem('mcp_api_key', apiKey);
+
+                    // Redirect to main page
+                    window.location.href = '/';
+
+                } catch (error) {
+                    console.error('Login failed:', error);
+
+                    let errorMsg;
+                    if (error.message === 'Invalid API key') {
+                        errorMsg = this.lang === 'zh' ? 'API 密钥无效' : 'Invalid API key';
+                    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        errorMsg = this.lang === 'zh'
+                            ? '网络错误：无法连接到服务器'
+                            : 'Network error: Cannot connect to server';
+                    } else {
+                        errorMsg = this.lang === 'zh'
+                            ? `登录失败：${error.message}`
+                            : `Login failed: ${error.message}`;
+                    }
+
+                    this.showError(errorMsg);
+
+                    // Restore button
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            }
+
+            showError(message) {
+                const errorEl = document.getElementById('errorMessage');
+                errorEl.textContent = message;
+                errorEl.classList.add('active');
+            }
+
+            hideError() {
+                const errorEl = document.getElementById('errorMessage');
+                errorEl.classList.remove('active');
+            }
+        }
+
+        new LoginPage();
+    </script>
+</body>
+</html>
