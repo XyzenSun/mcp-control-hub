@@ -34,6 +34,11 @@ func main() {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
 
+	// Set Gin mode
+	if cfg.Server.Mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	appLogger.Info().Msg("Starting MCP Gateway")
 
 	// Initialize database
