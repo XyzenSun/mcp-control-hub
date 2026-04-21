@@ -1,4 +1,5 @@
 services:
+  mcp-control-hub:
     image: ghcr.io/xyzensun/mcp-control-hub:latest
     container_name: mcp-control-hub
     restart: unless-stopped
