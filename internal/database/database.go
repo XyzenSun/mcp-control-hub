@@ -2,6 +2,8 @@ package database
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"mcp-control-hub/internal/models"
@@ -14,6 +16,13 @@ import (
 
 func Initialize(driver, dsn string, maxOpenConns, maxIdleConns int, connMaxLifetime time.Duration) (*gorm.DB, error) {
 	var dialector gorm.Dialector
+
+	// For SQLite, ensure the database directory exists
+	if driver == "sqlite" {
+		if err := ensureSQLiteDirectory(dsn); err != nil {
+			return nil, fmt.Errorf("failed to create database directory: %w", err)
+		}
+	}
 
 	switch driver {
 	case "postgres":
@@ -59,4 +68,16 @@ func Initialize(driver, dsn string, maxOpenConns, maxIdleConns int, connMaxLifet
 	}
 
 	return db, nil
+}
+
+// ensureSQLiteDirectory creates the parent directory for SQLite database file if it doesn't exist
+func ensureSQLiteDirectory(dsn string) error {
+	// Get the directory path from the DSN
+	dir := filepath.Dir(dsn)
+	// If it's just a filename (no directory), use current directory
+	if dir == "." || dir == "" {
+		return nil
+	}
+	// Create directory with 0755 permissions (rwxr-xr-x)
+	return os.MkdirAll(dir, 0755)
 }
